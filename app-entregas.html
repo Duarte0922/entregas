@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Entregas"/>
+<title>App de Entregas</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f8;color:#1a1a1a;min-height:100vh;}
+
+/* HEADER */
+.app-header{background:#1D9E75;color:#fff;padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+.app-header h1{font-size:18px;font-weight:600;letter-spacing:0.3px;}
+.app-header .badge{background:rgba(255,255,255,0.25);border-radius:12px;padding:3px 10px;font-size:12px;font-weight:500;}
+
+/* FORM CARD */
+.card{background:#fff;border-radius:16px;margin:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+.card-title{font-size:13px;font-weight:600;color:#1D9E75;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px;}
+
+.field{margin-bottom:10px;}
+.field label{display:block;font-size:12px;color:#666;margin-bottom:4px;font-weight:500;}
+.field input,.field select,.field textarea{width:100%;border:1.5px solid #e5e7eb;border-radius:10px;padding:10px 12px;font-size:14px;color:#1a1a1a;background:#fff;outline:none;font-family:inherit;transition:border-color 0.2s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#1D9E75;}
+.field textarea{resize:none;height:60px;line-height:1.5;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+.mic-row{display:flex;gap:8px;}
+.mic-row input{flex:1;}
+.mic-btn{width:44px;height:44px;border-radius:50%;background:#1D9E75;border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.2s;}
+.mic-btn.active{background:#E24B4A;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(226,75,74,0.5);}50%{box-shadow:0 0 0 8px rgba(226,75,74,0);}}
+
+#mic-status{font-size:12px;color:#666;text-align:center;padding:4px 0;min-height:20px;}
+#mic-status.on{color:#E24B4A;font-weight:600;}
+#mic-status.ok{color:#1D9E75;font-weight:600;}
+
+.btn-add{width:100%;background:#1D9E75;color:#fff;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px;transition:background 0.2s;}
+.btn-add:active{background:#0F6E56;}
+
+/* SUGESTÕES */
+.sugg-box{background:#fff;border:1.5px solid #1D9E75;border-radius:10px;margin-top:4px;overflow:hidden;display:none;}
+.sugg-item{padding:10px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid #f0f0f0;color:#1a1a1a;}
+.sugg-item:last-child{border-bottom:none;}
+.sugg-item:active{background:#E1F5EE;}
+
+/* STATS */
+.stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 12px 12px;}
+.stat{background:#fff;border-radius:12px;padding:10px 8px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.07);}
+.stat .val{font-size:18px;font-weight:700;color:#1D9E75;}
+.stat .lbl{font-size:10px;color:#888;margin-top:2px;}
+
+/* ROTA BUTTONS */
+.route-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 12px 12px;}
+.rbtn{border:none;border-radius:12px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity 0.2s;}
+.rbtn:active{opacity:0.8;}
+.rbtn.opt{background:#E1F5EE;color:#0F6E56;}
+.rbtn.nav{background:#1D9E75;color:#fff;}
+.ext-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 12px 8px;}
+.ebtn{border:1.5px solid #e5e7eb;background:#fff;border-radius:10px;padding:10px;font-size:12px;font-weight:500;cursor:pointer;color:#444;text-align:center;}
+.ebtn:active{background:#f5f5f5;}
+
+/* LISTA */
+.list-title{font-size:13px;font-weight:600;color:#888;padding:0 12px 8px;text-transform:uppercase;letter-spacing:0.5px;}
+.item{background:#fff;border-radius:14px;margin:0 12px 8px;box-shadow:0 1px 4px rgba(0,0,0,0.07);overflow:hidden;transition:opacity 0.3s;}
+.item.entregue{opacity:0.6;}
+.item-head{display:flex;align-items:center;gap:10px;padding:12px 14px;}
+.num-badge{width:28px;height:28px;border-radius:50%;background:#1D9E75;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.num-badge.start{background:#185FA5;}
+.num-badge.end{background:#E24B4A;}
+.num-badge.done{background:#9ca3af;}
+.item-info{flex:1;min-width:0;}
+.item-addr{font-size:13px;font-weight:600;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.item-sub{font-size:11px;color:#888;margin-top:2px;}
+.item-actions{display:flex;gap:6px;align-items:center;}
+.btn-ver{background:#1D9E75;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;}
+.btn-ver.entregue-btn{background:#9ca3af;}
+.btn-del{background:none;border:none;color:#ccc;font-size:22px;cursor:pointer;padding:0 2px;line-height:1;}
+.btn-del:active{color:#E24B4A;}
+.tags{display:flex;gap:5px;flex-wrap:wrap;padding:0 14px 10px;}
+.tag{font-size:10px;padding:3px 8px;border-radius:8px;font-weight:500;}
+.tag.pedido{background:#E1F5EE;color:#0F6E56;}
+.tag.tipo{background:#E6F1FB;color:#0C447C;}
+.tag.comp{background:#FAEEDA;color:#633806;}
+.tag.obs{background:#f3f4f6;color:#555;}
+.tag.done{background:#f3f4f6;color:#9ca3af;}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px 20px;color:#aaa;}
+.empty .icon{font-size:48px;margin-bottom:12px;}
+.empty p{font-size:14px;}
+.empty p.sub{font-size:12px;margin-top:6px;}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:0;}
+.modal-bg.hidden{display:none;}
+.modal{background:#fff;border-radius:24px 24px 0 0;width:100%;max-width:480px;padding-bottom:env(safe-area-inset-bottom,16px);animation:slideUp 0.25s ease;}
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.modal-pill{width:36px;height:4px;background:#e5e7eb;border-radius:2px;margin:10px auto 0;}
+.modal-head{background:linear-gradient(135deg,#1D9E75,#0F6E56);padding:20px 20px 16px;margin:0;}
+.modal-head .m-label{font-size:12px;color:rgba(255,255,255,0.75);font-weight:500;}
+.modal-head .m-num{font-size:32px;font-weight:700;color:#fff;letter-spacing:1px;}
+.modal-head .m-addr{font-size:13px;color:rgba(255,255,255,0.85);margin-top:4px;}
+.modal-body{padding:16px 20px;}
+.m-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f3f4f6;}
+.m-row:last-child{border-bottom:none;}
+.m-key{font-size:13px;color:#888;}
+.m-val{font-size:14px;font-weight:600;color:#1a1a1a;text-align:right;max-width:60%;}
+.m-val.pend{color:#BA7517;}
+.m-val.done{color:#1D9E75;}
+.modal-foot{padding:12px 20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.m-btn{border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;}
+.m-btn.confirm{background:#1D9E75;color:#fff;}
+.m-btn.confirm:active{background:#0F6E56;}
+.m-btn.cancel{background:#f3f4f6;color:#444;}
+.m-btn.cancel:active{background:#e5e7eb;}
+
+.pb{padding-bottom:24px;}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>📦 Minhas Entregas</h1>
+  <div class="badge" id="hdr-badge">0 paradas</div>
+</div>
+
+<!-- FORM -->
+<div class="card">
+  <div class="card-title">Nova Entrega</div>
+  <div class="row2">
+    <div class="field">
+      <label>Nº do Pedido</label>
+      <input type="text" id="f-pedido" placeholder="Ex: 6426" inputmode="numeric"/>
+    </div>
+    <div class="field">
+      <label>Tipo</label>
+      <select id="f-tipo">
+        <option value="">Selecione...</option>
+        <option value="Casa">🏠 Casa</option>
+        <option value="Apartamento">🏢 Apartamento</option>
+        <option value="Comércio">🏪 Comércio</option>
+        <option value="Condomínio">🏘️ Condomínio</option>
+      </select>
+    </div>
+  </div>
+  <div class="field">
+    <label>Complemento (apto, bloco, casa...)</label>
+    <input type="text" id="f-compl" placeholder="Ex: Apto 201, Bloco B, Casa dos fundos"/>
+  </div>
+  <div class="field">
+    <label>Endereço</label>
+    <div class="mic-row">
+      <input type="text" id="addr-input" placeholder="Digite ou fale o endereço..." autocomplete="off"/>
+      <button class="mic-btn" id="mic-btn">🎙️</button>
+    </div>
+    <div class="sugg-box" id="sugg-box"></div>
+  </div>
+  <div class="field">
+    <label>Observações (opcional)</label>
+    <textarea id="f-obs" placeholder="Ex: Deixar na portaria, cliente não atende campainha..."></textarea>
+  </div>
+  <div id="mic-status"></div>
+  <button class="btn-add" id="add-btn">+ Adicionar Entrega</button>
+</div>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat"><div class="val" id="s-total">0</div><div class="lbl">Total</div></div>
+  <div class="stat"><div class="val" id="s-pend" style="color:#BA7517;">0</div><div class="lbl">Pendentes</div></div>
+  <div class="stat"><div class="val" id="s-done" style="color:#1D9E75;">0</div><div class="lbl">Entregues</div></div>
+</div>
+
+<!-- BOTÕES DE ROTA -->
+<div class="route-btns">
+  <button class="rbtn opt" id="opt-btn">✦ Otimizar rota</button>
+  <button class="rbtn nav" id="nav-btn">▶ Navegar agora</button>
+</div>
+<div class="ext-btns">
+  <button class="ebtn" id="gmaps-btn">🗺️ Google Maps ↗</button>
+  <button class="ebtn" id="waze-btn">🚗 Waze ↗</button>
+</div>
+
+<!-- LISTA -->
+<div class="list-title" id="list-title" style="display:none;">Suas entregas — arraste para reordenar</div>
+<div id="list">
+  <div class="empty" id="empty-msg">
+    <div class="icon">📦</div>
+    <p>Nenhuma entrega ainda</p>
+    <p class="sub">Preencha os dados acima e adicione</p>
+  </div>
+</div>
+<div class="pb"></div>
+
+<!-- MODAL -->
+<div class="modal-bg hidden" id="modal">
+  <div class="modal">
+    <div class="modal-pill"></div>
+    <div class="modal-head">
+      <div class="m-label">📦 Pedido para entregar</div>
+      <div class="m-num" id="m-num">#—</div>
+      <div class="m-addr" id="m-addr"></div>
+    </div>
+    <div class="modal-body" id="m-body"></div>
+    <div class="modal-foot">
+      <button class="m-btn confirm" id="m-entregue">✓ Entregue!</button>
+      <button class="m-btn cancel" id="m-fechar">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Endereços de exemplo (São Paulo)
+const ADDRS_SP = [
+  {name:"Av. Paulista, 1000 - Bela Vista, São Paulo",lat:-23.5632,lng:-46.6542},
+  {name:"Rua Augusta, 500 - Consolação, São Paulo",lat:-23.5534,lng:-46.6595},
+  {name:"Av. Brigadeiro Faria Lima, 2000 - Pinheiros, SP",lat:-23.5697,lng:-46.6914},
+  {name:"Rua Oscar Freire, 300 - Jardins, São Paulo",lat:-23.5614,lng:-46.6693},
+  {name:"Av. Rebouças, 1500 - Pinheiros, São Paulo",lat:-23.5647,lng:-46.6802},
+  {name:"Rua da Consolação, 700 - Higienópolis, SP",lat:-23.5498,lng:-46.6579},
+  {name:"Av. 9 de Julho, 4000 - Jardim Paulista, SP",lat:-23.5752,lng:-46.6694},
+  {name:"Rua Haddock Lobo, 200 - Cerqueira César, SP",lat:-23.5570,lng:-46.6644},
+  {name:"Av. Europa, 100 - Jardim Europa, São Paulo",lat:-23.5731,lng:-46.6783},
+  {name:"Rua Pamplona, 800 - Bela Vista, São Paulo",lat:-23.5626,lng:-46.6508},
+  {name:"Av. Angélica, 2000 - Higienópolis, São Paulo",lat:-23.5489,lng:-46.6614},
+  {name:"Rua Estados Unidos, 1500 - Jardim América, SP",lat:-23.5724,lng:-46.6651},
+];
+
+let routes = [];
+let dragSrc = null;
+let recognition = null;
+let isListening = false;
+let openModalId = null;
+
+const input = document.getElementById('addr-input');
+const suggBox = document.getElementById('sugg-box');
+const micBtn = document.getElementById('mic-btn');
+const micStatus = document.getElementById('mic-status');
+const listEl = document.getElementById('list');
+const emptyMsg = document.getElementById('empty-msg');
+const modal = document.getElementById('modal');
+
+// --- SAVE/LOAD ---
+function save(){try{localStorage.setItem('entregas_v2',JSON.stringify(routes));}catch(e){}}
+function load(){try{const d=localStorage.getItem('entregas_v2');if(d)routes=JSON.parse(d);}catch(e){}}
+
+// --- SUGESTÕES ---
+function getSugg(q){
+  if(!q||q.length<2)return[];
+  return ADDRS_SP.filter(a=>a.name.toLowerCase().includes(q.toLowerCase())).slice(0,5);
+}
+
+input.addEventListener('input',()=>{
+  const s=getSugg(input.value.trim());
+  if(s.length&&input.value.length>1){
+    suggBox.innerHTML=s.map(a=>`<div class="sugg-item" data-name="${a.name}" data-lat="${a.lat}" data-lng="${a.lng}">📍 ${a.name}</div>`).join('');
+    suggBox.style.display='block';
+  }else suggBox.style.display='none';
+});
+
+suggBox.addEventListener('click',e=>{
+  const it=e.target.closest('.sugg-item');
+  if(!it)return;
+  input.value=it.dataset.name;
+  suggBox.style.display='none';
+});
+
+document.addEventListener('click',e=>{if(!e.target.closest('#addr-input')&&!e.target.closest('#sugg-box'))suggBox.style.display='none';});
+
+// --- ADICIONAR ---
+function addRoute(addr,lat,lng){
+  const pedido=document.getElementById('f-pedido').value.trim()||'—';
+  const tipo=document.getElementById('f-tipo').value||'';
+  const compl=document.getElementById('f-compl').value.trim()||'';
+  const obs=document.getElementById('f-obs').value.trim()||'';
+  routes.push({addr,lat,lng,pedido,tipo,compl,obs,id:Date.now()+Math.random(),entregue:false});
+  document.getElementById('f-pedido').value='';
+  document.getElementById('f-tipo').value='';
+  document.getElementById('f-compl').value='';
+  document.getElementById('f-obs').value='';
+  input.value='';
+  suggBox.style.display='none';
+  save();renderList();updateStats();
+  window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+}
+
+document.getElementById('add-btn').addEventListener('click',()=>{
+  const val=input.value.trim();
+  if(!val){alert('Por favor, informe o endereço!');return;}
+  const m=ADDRS_SP.find(a=>a.name.toLowerCase().includes(val.toLowerCase()));
+  if(m)addRoute(m.name,m.lat,m.lng);
+  else{
+    const lat=-23.56+(Math.random()-0.5)*0.05;
+    const lng=-46.65+(Math.random()-0.5)*0.05;
+    addRoute(val,lat,lng);
+  }
+});
+
+input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();document.getElementById('add-btn').click();}});
+
+// --- RENDER LIST ---
+function renderList(){
+  const listTitle=document.getElementById('list-title');
+  if(routes.length===0){
+    listEl.innerHTML='';
+    listEl.appendChild(emptyMsg);
+    emptyMsg.style.display='block';
+    listTitle.style.display='none';
+    document.getElementById('hdr-badge').textContent='0 paradas';
+    return;
+  }
+  emptyMsg.style.display='none';
+  listTitle.style.display='block';
+  listEl.innerHTML=routes.map((r,i)=>{
+    const bc=r.entregue?'done':i===0?'start':i===routes.length-1?'end':'';
+    const lbl=i===0?'A':i===routes.length-1?'Z':(i+1);
+    return `<div class="item${r.entregue?' entregue':''}" draggable="true" data-id="${r.id}">
+      <div class="item-head">
+        <div class="num-badge ${bc}">${r.entregue?'✓':lbl}</div>
+        <div class="item-info">
+          <div class="item-addr">${r.addr}</div>
+          <div class="item-sub">${r.tipo?r.tipo+' · ':''}${r.compl?r.compl+' · ':''}<strong>Pedido #${r.pedido}</strong></div>
+        </div>
+        <div class="item-actions">
+          <button class="btn-ver${r.entregue?' entregue-btn':''}" data-open="${r.id}">Ver</button>
+          <button class="btn-del" data-del="${r.id}">×</button>
+        </div>
+      </div>
+      <div class="tags">
+        ${r.pedido!=='—'?`<span class="tag pedido">📦 #${r.pedido}</span>`:''}
+        ${r.tipo?`<span class="tag tipo">${r.tipo}</span>`:''}
+        ${r.compl?`<span class="tag comp">${r.compl}</span>`:''}
+        ${r.obs?`<span class="tag obs">💬 ${r.obs.substring(0,40)}${r.obs.length>40?'...':''}</span>`:''}
+        ${r.entregue?'<span class="tag done">✓ Entregue</span>':''}
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('hdr-badge').textContent=`${routes.length} parada${routes.length!==1?'s':''}`;
+  setupDrag();
+}
+
+listEl.addEventListener('click',e=>{
+  const del=e.target.closest('[data-del]');
+  if(del){
+    if(!confirm('Remover esta entrega?'))return;
+    const id=parseFloat(del.dataset.del);
+    routes=routes.filter(r=>r.id!==id);
+    save();renderList();updateStats();return;
+  }
+  const open=e.target.closest('[data-open]');
+  if(open)openModal(parseFloat(open.dataset.open));
+});
+
+// --- MODAL ---
+function openModal(id){
+  const r=routes.find(x=>x.id===id);
+  if(!r)return;
+  openModalId=id;
+  document.getElementById('m-num').textContent='#'+r.pedido;
+  document.getElementById('m-addr').textContent=r.addr;
+  document.getElementById('m-body').innerHTML=`
+    ${r.tipo?`<div class="m-row"><span class="m-key">Tipo</span><span class="m-val">${r.tipo}</span></div>`:''}
+    ${r.compl?`<div class="m-row"><span class="m-key">Complemento</span><span class="m-val">${r.compl}</span></div>`:''}
+    ${r.obs?`<div class="m-row"><span class="m-key">Observações</span><span class="m-val">${r.obs}</span></div>`:''}
+    <div class="m-row"><span class="m-key">Status</span><span class="m-val ${r.entregue?'done':'pend'}">${r.entregue?'✓ Entregue':'⏳ Pendente'}</span></div>
+    <div class="m-row"><span class="m-key">Posição na rota</span><span class="m-val">${routes.indexOf(r)+1}ª parada</span></div>
+  `;
+  modal.classList.remove('hidden');
+}
+
+document.getElementById('m-entregue').addEventListener('click',()=>{
+  const r=routes.find(x=>x.id===openModalId);
+  if(r){r.entregue=true;save();renderList();updateStats();}
+  modal.classList.add('hidden');
+  setStatus('✓ Entregue! Ótimo trabalho 🎉','ok');
+  setTimeout(()=>setStatus(''),3000);
+});
+
+document.getElementById('m-fechar').addEventListener('click',()=>modal.classList.add('hidden'));
+modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.add('hidden');});
+
+// --- STATS ---
+function updateStats(){
+  const total=routes.length;
+  const done=routes.filter(r=>r.entregue).length;
+  const pend=total-done;
+  document.getElementById('s-total').textContent=total;
+  document.getElementById('s-pend').textContent=pend;
+  document.getElementById('s-done').textContent=done;
+}
+
+// --- STATUS ---
+function setStatus(msg,cls=''){micStatus.textContent=msg;micStatus.className=cls;}
+
+// --- DRAG & DROP ---
+function setupDrag(){
+  const items=listEl.querySelectorAll('.item');
+  items.forEach(it=>{
+    it.addEventListener('dragstart',e=>{dragSrc=it;setTimeout(()=>it.classList.add('dragging'),0);});
+    it.addEventListener('dragend',()=>{it.classList.remove('dragging');items.forEach(i=>i.classList.remove('drag-over'));});
+    it.addEventListener('dragover',e=>{e.preventDefault();it.classList.add('drag-over');});
+    it.addEventListener('dragleave',()=>it.classList.remove('drag-over'));
+    it.addEventListener('drop',e=>{
+      e.preventDefault();if(dragSrc===it)return;
+      const si=routes.findIndex(r=>r.id===parseFloat(dragSrc.dataset.id));
+      const di=routes.findIndex(r=>r.id===parseFloat(it.dataset.id));
+      const tmp=routes[si];routes[si]=routes[di];routes[di]=tmp;
+      save();renderList();updateStats();
+    });
+    // Touch drag
+    let touchY=0,touchItem=null;
+    it.addEventListener('touchstart',e=>{touchY=e.touches[0].clientY;touchItem=it;},{passive:true});
+    it.addEventListener('touchmove',e=>{e.preventDefault();
+      const y=e.touches[0].clientY;
+      const els=document.elementsFromPoint(e.touches[0].clientX,y);
+      const target=els.find(el=>el.classList.contains('item')&&el!==it);
+      items.forEach(i=>i.classList.remove('drag-over'));
+      if(target)target.classList.add('drag-over');
+    },{passive:false});
+    it.addEventListener('touchend',e=>{
+      const y=e.changedTouches[0].clientY;
+      const els=document.elementsFromPoint(e.changedTouches[0].clientX,y);
+      const target=els.find(el=>el.classList.contains('item')&&el!==it);
+      if(target){
+        const si=routes.findIndex(r=>r.id===parseFloat(it.dataset.id));
+        const di=routes.findIndex(r=>r.id===parseFloat(target.dataset.id));
+        if(si!==-1&&di!==-1){const tmp=routes[si];routes[si]=routes[di];routes[di]=tmp;save();renderList();updateStats();}
+      }
+      items.forEach(i=>i.classList.remove('drag-over'));
+    });
+  });
+}
+
+// --- OTIMIZAR ---
+document.getElementById('opt-btn').addEventListener('click',()=>{
+  if(routes.length<3){alert('Adicione pelo menos 3 paradas para otimizar!');return;}
+  const s=routes[0],e=routes[routes.length-1],m=routes.slice(1,-1);
+  // Nearest neighbor simples
+  const rem=[...m];const sorted=[];
+  let cur=s;
+  while(rem.length){
+    let best=null,bestD=Infinity;
+    rem.forEach(r=>{const d=Math.hypot(r.lat-cur.lat,r.lng-cur.lng);if(d<bestD){bestD=d;best=r;}});
+    sorted.push(best);rem.splice(rem.indexOf(best),1);cur=best;
+  }
+  routes=[s,...sorted,e];
+  save();renderList();updateStats();
+  setStatus('✦ Rota otimizada pelo menor caminho!','ok');
+  setTimeout(()=>setStatus(''),3000);
+});
+
+// --- NAVEGAR ---
+document.getElementById('nav-btn').addEventListener('click',()=>{
+  const pend=routes.filter(r=>!r.entregue);
+  if(pend.length<1){alert('Nenhuma entrega pendente!');return;}
+  const wp=pend.slice(1,-1).map(r=>`${r.lat},${r.lng}`).join('|');
+  const o=`${pend[0].lat},${pend[0].lng}`;
+  const d=pend.length>1?`${pend[pend.length-1].lat},${pend[pend.length-1].lng}`:o;
+  const url=`https://www.google.com/maps/dir/?api=1&origin=${o}&destination=${d}${wp?'&waypoints='+encodeURIComponent(wp):''}&travelmode=driving`;
+  window.open(url,'_blank');
+});
+
+document.getElementById('gmaps-btn').addEventListener('click',()=>{
+  const pend=routes.filter(r=>!r.entregue);
+  if(!pend.length){alert('Nenhuma entrega pendente!');return;}
+  const wp=pend.slice(1,-1).map(r=>encodeURIComponent(r.addr)).join('|');
+  const o=encodeURIComponent(pend[0].addr);
+  const d=pend.length>1?encodeURIComponent(pend[pend.length-1].addr):o;
+  window.open(`https://www.google.com/maps/dir/?api=1&origin=${o}&destination=${d}${wp?'&waypoints='+encodeURIComponent(pend.slice(1,-1).map(r=>r.addr).join('|')):''}&travelmode=driving`,'_blank');
+});
+
+document.getElementById('waze-btn').addEventListener('click',()=>{
+  const pend=routes.filter(r=>!r.entregue);
+  if(!pend.length){alert('Nenhuma entrega pendente!');return;}
+  window.open(`https://waze.com/ul?ll=${pend[0].lat}%2C${pend[0].lng}&navigate=yes`,'_blank');
+});
+
+// --- MICROFONE ---
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(SR){
+  recognition=new SR();
+  recognition.lang='pt-BR';
+  recognition.interimResults=true;
+  recognition.continuous=false;
+  recognition.onstart=()=>{isListening=true;micBtn.classList.add('active');micBtn.textContent='⏹️';setStatus('🎙️ Ouvindo... fale o endereço','on');};
+  recognition.onend=()=>{isListening=false;micBtn.classList.remove('active');micBtn.textContent='🎙️';if(micStatus.className==='on')setStatus('');};
+  recognition.onresult=e=>{
+    const t=e.results[0][0].transcript;
+    input.value=t;
+    const s=getSugg(t);
+    if(s.length){suggBox.innerHTML=s.map(a=>`<div class="sugg-item" data-name="${a.name}" data-lat="${a.lat}" data-lng="${a.lng}">📍 ${a.name}</div>`).join('');suggBox.style.display='block';}
+    if(e.results[0].isFinal){
+      setStatus(s.length?`✓ Encontrado! Confirme abaixo`:'Endereço registrado. Confirme.','ok');
+    }
+  };
+  recognition.onerror=()=>{setStatus('Erro no microfone. Tente de novo.');isListening=false;micBtn.classList.remove('active');micBtn.textContent='🎙️';};
+  micBtn.addEventListener('click',()=>{if(isListening)recognition.stop();else try{recognition.start();}catch(e){}});
+}else{
+  micBtn.disabled=true;micBtn.style.opacity='0.4';
+  setStatus('Use o Chrome para usar o microfone');
+}
+
+// --- INIT ---
+load();renderList();updateStats();
+</script>
+</body>
+</html>
