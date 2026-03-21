@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Entregas"/>
+<title>App de Entregas</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f8;color:#1a1a1a;min-height:100vh;}
+.app-header{background:#1D9E75;color:#fff;padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+.app-header h1{font-size:18px;font-weight:600;}
+.badge{background:rgba(255,255,255,0.25);border-radius:12px;padding:3px 10px;font-size:12px;font-weight:500;}
+.card{background:#fff;border-radius:16px;margin:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+.card-title{font-size:13px;font-weight:600;color:#1D9E75;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px;}
+.field{margin-bottom:10px;}
+.field label{display:block;font-size:12px;color:#666;margin-bottom:4px;font-weight:500;}
+.field input,.field select,.field textarea{width:100%;border:1.5px solid #e5e7eb;border-radius:10px;padding:10px 12px;font-size:14px;color:#1a1a1a;background:#fff;outline:none;font-family:inherit;transition:border-color 0.2s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#1D9E75;}
+.field textarea{resize:none;height:56px;line-height:1.5;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.mic-row{display:flex;gap:8px;align-items:flex-start;}
+.addr-wrap{flex:1;position:relative;}
+.mic-btn{width:44px;height:44px;border-radius:50%;background:#1D9E75;border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mic-btn.active{background:#E24B4A;animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(226,75,74,0.5);}50%{box-shadow:0 0 0 8px rgba(226,75,74,0);}}
+#mic-status{font-size:12px;color:#666;text-align:center;padding:4px 0;min-height:20px;}
+#mic-status.on{color:#E24B4A;font-weight:600;}
+#mic-status.ok{color:#1D9E75;font-weight:600;}
+#mic-status.err{color:#c0392b;}
+.btn-add{width:100%;background:#1D9E75;color:#fff;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px;}
+.btn-add:active{background:#0F6E56;}
+.pac-box{background:#fff;border:1.5px solid #1D9E75;border-radius:10px;margin-top:4px;overflow:hidden;display:none;position:absolute;left:0;right:0;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,0.12);}
+.pac-item{padding:11px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid #f0f0f0;color:#1a1a1a;display:flex;gap:8px;align-items:flex-start;}
+.pac-item:last-child{border-bottom:none;}
+.pac-item:active,.pac-item:hover{background:#E1F5EE;}
+.pac-main{font-weight:600;font-size:13px;}
+.pac-sec{font-size:11px;color:#888;margin-top:2px;}
+.stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 12px 12px;}
+.stat{background:#fff;border-radius:12px;padding:10px 8px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,0.07);}
+.stat .val{font-size:18px;font-weight:700;color:#1D9E75;}
+.stat .lbl{font-size:10px;color:#888;margin-top:2px;}
+.route-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 12px 12px;}
+.rbtn{border:none;border-radius:12px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;}
+.rbtn:active{opacity:0.8;}
+.rbtn.opt{background:#E1F5EE;color:#0F6E56;}
+.rbtn.nav{background:#1D9E75;color:#fff;}
+.ext-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 12px 8px;}
+.ebtn{border:1.5px solid #e5e7eb;background:#fff;border-radius:10px;padding:10px;font-size:12px;font-weight:500;cursor:pointer;color:#444;text-align:center;}
+.list-title{font-size:13px;font-weight:600;color:#888;padding:0 12px 8px;text-transform:uppercase;letter-spacing:0.5px;}
+.item{background:#fff;border-radius:14px;margin:0 12px 8px;box-shadow:0 1px 4px rgba(0,0,0,0.07);overflow:hidden;}
+.item.entregue{opacity:0.6;}
+.item-head{display:flex;align-items:center;gap:10px;padding:12px 14px;}
+.num-badge{width:28px;height:28px;border-radius:50%;background:#1D9E75;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.num-badge.start{background:#185FA5;}
+.num-badge.end{background:#E24B4A;}
+.num-badge.done{background:#9ca3af;}
+.item-info{flex:1;min-width:0;}
+.item-addr{font-size:13px;font-weight:600;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.item-sub{font-size:11px;color:#888;margin-top:2px;}
+.item-actions{display:flex;gap:6px;align-items:center;}
+.btn-ver{background:#1D9E75;color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;}
+.btn-ver.done-btn{background:#9ca3af;}
+.btn-del{background:none;border:none;color:#ccc;font-size:22px;cursor:pointer;line-height:1;}
+.tags{display:flex;gap:5px;flex-wrap:wrap;padding:0 14px 10px;}
+.tag{font-size:10px;padding:3px 8px;border-radius:8px;font-weight:500;}
+.tag.pedido{background:#E1F5EE;color:#0F6E56;}
+.tag.tipo{background:#E6F1FB;color:#0C447C;}
+.tag.comp{background:#FAEEDA;color:#633806;}
+.tag.obs{background:#f3f4f6;color:#555;}
+.tag.done-tag{background:#f3f4f6;color:#9ca3af;}
+.empty{text-align:center;padding:40px 20px;color:#aaa;}
+.empty .icon{font-size:48px;margin-bottom:12px;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
+.modal-bg.hidden{display:none;}
+.modal{background:#fff;border-radius:24px 24px 0 0;width:100%;max-width:480px;padding-bottom:env(safe-area-inset-bottom,16px);animation:slideUp 0.25s ease;}
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.modal-pill{width:36px;height:4px;background:#e5e7eb;border-radius:2px;margin:10px auto 0;}
+.modal-head{background:#1D9E75;padding:20px 20px 16px;}
+.m-label{font-size:12px;color:rgba(255,255,255,0.75);font-weight:500;}
+.m-num{font-size:32px;font-weight:700;color:#fff;letter-spacing:1px;}
+.m-addr-txt{font-size:13px;color:rgba(255,255,255,0.85);margin-top:4px;}
+.modal-body{padding:16px 20px;}
+.m-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f3f4f6;}
+.m-row:last-child{border-bottom:none;}
+.m-key{font-size:13px;color:#888;}
+.m-val{font-size:14px;font-weight:600;color:#1a1a1a;text-align:right;max-width:65%;}
+.m-val.pend{color:#BA7517;}
+.m-val.ok{color:#1D9E75;}
+.modal-foot{padding:12px 20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.m-btn{border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;}
+.m-btn.confirm{background:#1D9E75;color:#fff;}
+.m-btn.cancel{background:#f3f4f6;color:#444;}
+.hint{font-size:11px;color:#aaa;text-align:center;margin:-4px 0 6px;line-height:1.4;}
+.pb{padding-bottom:30px;}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>📦 Minhas Entregas</h1>
+  <div class="badge" id="hdr-badge">0 paradas</div>
+</div>
+
+<div class="card">
+  <div class="card-title">Nova Entrega</div>
+  <div class="row2">
+    <div class="field">
+      <label>Nº do Pedido</label>
+      <input type="text" id="f-pedido" placeholder="Ex: 6426" inputmode="numeric"/>
+    </div>
+    <div class="field">
+      <label>Tipo</label>
+      <select id="f-tipo">
+        <option value="">Selecione...</option>
+        <option value="Casa">🏠 Casa</option>
+        <option value="Apartamento">🏢 Apartamento</option>
+        <option value="Comércio">🏪 Comércio</option>
+        <option value="Condomínio">🏘️ Condomínio</option>
+      </select>
+    </div>
+  </div>
+  <div class="field">
+    <label>Complemento (apto, bloco, casa...)</label>
+    <input type="text" id="f-compl" placeholder="Ex: Apto 201, Bloco B"/>
+  </div>
+  <div class="field">
+    <label>Endereço com número</label>
+    <div class="mic-row">
+      <div class="addr-wrap">
+        <input type="text" id="addr-input" placeholder="Ex: Rua Erva Mate, 499, BH" autocomplete="off"/>
+        <div class="pac-box" id="pac-box"></div>
+      </div>
+      <button class="mic-btn" id="mic-btn">🎙️</button>
+    </div>
+    <div class="hint">Fale ou digite: "Rua Erva Mate 499 Belo Horizonte"</div>
+  </div>
+  <div class="field">
+    <label>Observações (opcional)</label>
+    <textarea id="f-obs" placeholder="Ex: Deixar na portaria, não atende campainha..."></textarea>
+  </div>
+  <div id="mic-status"></div>
+  <button class="btn-add" id="add-btn">+ Adicionar Entrega</button>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="val" id="s-total">0</div><div class="lbl">Total</div></div>
+  <div class="stat"><div class="val" id="s-pend" style="color:#BA7517;">0</div><div class="lbl">Pendentes</div></div>
+  <div class="stat"><div class="val" id="s-done" style="color:#1D9E75;">0</div><div class="lbl">Entregues</div></div>
+</div>
+
+<div class="route-btns">
+  <button class="rbtn opt" id="opt-btn">✦ Otimizar rota</button>
+  <button class="rbtn nav" id="nav-btn">▶ Navegar agora</button>
+</div>
+<div class="ext-btns">
+  <button class="ebtn" id="gmaps-btn">🗺️ Google Maps ↗</button>
+  <button class="ebtn" id="waze-btn">🚗 Waze ↗</button>
+</div>
+
+<div class="list-title" id="list-title" style="display:none;">Suas entregas</div>
+<div id="list">
+  <div class="empty" id="empty-msg">
+    <div class="icon">📦</div>
+    <p style="font-size:14px;">Nenhuma entrega ainda</p>
+    <p style="font-size:12px;margin-top:6px;color:#bbb;">Preencha os dados acima e adicione</p>
+  </div>
+</div>
+<div class="pb"></div>
+
+<div class="modal-bg hidden" id="modal">
+  <div class="modal">
+    <div class="modal-pill"></div>
+    <div class="modal-head">
+      <div class="m-label">📦 Pedido para entregar</div>
+      <div class="m-num" id="m-num">#—</div>
+      <div class="m-addr-txt" id="m-addr-modal"></div>
+    </div>
+    <div class="modal-body" id="m-body"></div>
+    <div class="modal-foot">
+      <button class="m-btn confirm" id="m-entregue">✓ Entregue!</button>
+      <button class="m-btn cancel" id="m-fechar">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let routes=[], recognition=null, isListening=false, openModalId=null;
+let selectedLat=null, selectedLng=null, selectedAddr=null, searchTimer=null;
+
+const input=document.getElementById('addr-input');
+const pacBox=document.getElementById('pac-box');
+const micBtn=document.getElementById('mic-btn');
+const micSt=document.getElementById('mic-status');
+const listEl=document.getElementById('list');
+const emptyMsg=document.getElementById('empty-msg');
+const modal=document.getElementById('modal');
+
+function save(){try{localStorage.setItem('entregas_v4',JSON.stringify(routes));}catch(e){}}
+function load(){try{const d=localStorage.getItem('entregas_v4');if(d)routes=JSON.parse(d);}catch(e){}}
+function setStatus(msg,cls){micSt.textContent=msg;micSt.className=cls||'';}
+
+// Busca real no OpenStreetMap com número incluído
+function buscar(query, cb){
+  // Monta query inteligente: adiciona "Belo Horizonte" se não tiver cidade
+  let q = query;
+  if(!/belo horizonte|são paulo|rio de janeiro|curitiba|salvador|fortaleza|manaus|brasilia/i.test(q)){
+    q = q + ', Brasil';
+  }
+  const url='https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+
+    '&format=json&addressdetails=1&limit=6&countrycodes=br&accept-language=pt-BR';
+  fetch(url,{headers:{'User-Agent':'AppEntregas/1.0'}})
+    .then(r=>r.json()).then(cb).catch(()=>cb([]));
+}
+
+function mostrar(data){
+  if(!data||!data.length){pacBox.style.display='none';return;}
+  pacBox.innerHTML=data.map(p=>{
+    const pts=p.display_name.split(',');
+    // Monta endereço mais legível
+    const road=p.address.road||pts[0]||'';
+    const num=p.address.house_number?', '+p.address.house_number:'';
+    const bairro=p.address.suburb||p.address.neighbourhood||'';
+    const cidade=p.address.city||p.address.town||p.address.municipality||'';
+    const estado=p.address.state||'';
+    const main=(road+num).trim();
+    const sec=[bairro,cidade,estado].filter(Boolean).join(', ');
+    return `<div class="pac-item" data-lat="${p.lat}" data-lng="${p.lon}" data-name="${main}${sec?', '+sec:''}">
+      <span style="margin-top:1px">📍</span>
+      <div><div class="pac-main">${main||pts[0]}</div><div class="pac-sec">${sec||pts.slice(1,3).join(',')}</div></div>
+    </div>`;
+  }).join('');
+  pacBox.style.display='block';
+}
+
+input.addEventListener('input',()=>{
+  selectedLat=null;selectedLng=null;selectedAddr=null;
+  clearTimeout(searchTimer);
+  const q=input.value.trim();
+  if(q.length<3){pacBox.style.display='none';return;}
+  searchTimer=setTimeout(()=>buscar(q,mostrar),450);
+});
+
+pacBox.addEventListener('click',e=>{
+  const it=e.target.closest('.pac-item');
+  if(!it)return;
+  selectedLat=parseFloat(it.dataset.lat);
+  selectedLng=parseFloat(it.dataset.lng);
+  selectedAddr=it.dataset.name;
+  input.value=selectedAddr;
+  pacBox.style.display='none';
+  setStatus('✓ Endereço selecionado!','ok');
+  setTimeout(()=>setStatus(''),2000);
+});
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.addr-wrap')&&e.target!==micBtn)pacBox.style.display='none';
+});
+
+function addRoute(addr,lat,lng){
+  const pedido=document.getElementById('f-pedido').value.trim()||'—';
+  const tipo=document.getElementById('f-tipo').value||'';
+  const compl=document.getElementById('f-compl').value.trim()||'';
+  const obs=document.getElementById('f-obs').value.trim()||'';
+  routes.push({addr,lat,lng,pedido,tipo,compl,obs,id:Date.now()+Math.random(),entregue:false});
+  document.getElementById('f-pedido').value='';
+  document.getElementById('f-tipo').value='';
+  document.getElementById('f-compl').value='';
+  document.getElementById('f-obs').value='';
+  input.value='';selectedLat=null;selectedLng=null;selectedAddr=null;
+  pacBox.style.display='none';setStatus('');
+  save();renderList();updateStats();
+  setTimeout(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}),100);
+}
+
+document.getElementById('add-btn').addEventListener('click',()=>{
+  const val=input.value.trim();
+  if(!val){alert('Informe o endereço!');return;}
+  if(selectedLat&&selectedLng){addRoute(selectedAddr||val,selectedLat,selectedLng);return;}
+  setStatus('🔍 Buscando...','');
+  buscar(val,data=>{
+    if(data&&data.length){
+      mostrar(data);
+      setStatus('✓ Toque no endereço correto acima','ok');
+    } else {
+      setStatus('Não encontrado. Tente incluir a cidade.','err');
+    }
+  });
+});
+
+input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();document.getElementById('add-btn').click();}});
+
+function renderList(){
+  const lt=document.getElementById('list-title');
+  if(!routes.length){
+    listEl.innerHTML='';listEl.appendChild(emptyMsg);emptyMsg.style.display='block';
+    lt.style.display='none';document.getElementById('hdr-badge').textContent='0 paradas';return;
+  }
+  emptyMsg.style.display='none';lt.style.display='block';
+  listEl.innerHTML=routes.map((r,i)=>{
+    const bc=r.entregue?'done':i===0?'start':i===routes.length-1?'end':'';
+    const lbl=r.entregue?'✓':i===0?'A':i===routes.length-1?'Z':(i+1);
+    return `<div class="item${r.entregue?' entregue':''}" data-id="${r.id}">
+      <div class="item-head">
+        <div class="num-badge ${bc}">${lbl}</div>
+        <div class="item-info">
+          <div class="item-addr">${r.addr.split(',').slice(0,2).join(',')}</div>
+          <div class="item-sub">${r.tipo?r.tipo+' · ':''}${r.compl?r.compl+' · ':''}<strong>Pedido #${r.pedido}</strong></div>
+        </div>
+        <div class="item-actions">
+          <button class="btn-ver${r.entregue?' done-btn':''}" data-open="${r.id}">Ver</button>
+          <button class="btn-del" data-del="${r.id}">×</button>
+        </div>
+      </div>
+      <div class="tags">
+        ${r.pedido!=='—'?`<span class="tag pedido">📦 #${r.pedido}</span>`:''}
+        ${r.tipo?`<span class="tag tipo">${r.tipo}</span>`:''}
+        ${r.compl?`<span class="tag comp">${r.compl}</span>`:''}
+        ${r.obs?`<span class="tag obs">💬 ${r.obs.substring(0,40)}${r.obs.length>40?'...':''}</span>`:''}
+        ${r.entregue?'<span class="tag done-tag">✓ Entregue</span>':''}
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('hdr-badge').textContent=`${routes.length} parada${routes.length!==1?'s':''}`;
+}
+
+listEl.addEventListener('click',e=>{
+  const del=e.target.closest('[data-del]');
+  if(del){if(!confirm('Remover esta entrega?'))return;routes=routes.filter(r=>r.id!==parseFloat(del.dataset.del));save();renderList();updateStats();return;}
+  const op=e.target.closest('[data-open]');
+  if(op)openModal(parseFloat(op.dataset.open));
+});
+
+function openModal(id){
+  const r=routes.find(x=>x.id===id);if(!r)return;
+  openModalId=id;
+  document.getElementById('m-num').textContent='#'+r.pedido;
+  document.getElementById('m-addr-modal').textContent=r.addr;
+  document.getElementById('m-body').innerHTML=`
+    ${r.tipo?`<div class="m-row"><span class="m-key">Tipo</span><span class="m-val">${r.tipo}</span></div>`:''}
+    ${r.compl?`<div class="m-row"><span class="m-key">Complemento</span><span class="m-val">${r.compl}</span></div>`:''}
+    ${r.obs?`<div class="m-row"><span class="m-key">Observações</span><span class="m-val">${r.obs}</span></div>`:''}
+    <div class="m-row"><span class="m-key">Status</span><span class="m-val ${r.entregue?'ok':'pend'}">${r.entregue?'✓ Entregue':'⏳ Pendente'}</span></div>
+    <div class="m-row"><span class="m-key">Posição</span><span class="m-val">${routes.indexOf(r)+1}ª parada</span></div>`;
+  modal.classList.remove('hidden');
+}
+
+document.getElementById('m-entregue').addEventListener('click',()=>{
+  const r=routes.find(x=>x.id===openModalId);
+  if(r){r.entregue=true;save();renderList();updateStats();}
+  modal.classList.add('hidden');
+  setStatus('✓ Entregue! Ótimo trabalho 🎉','ok');
+  setTimeout(()=>setStatus(''),3000);
+});
+document.getElementById('m-fechar').addEventListener('click',()=>modal.classList.add('hidden'));
+modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.add('hidden');});
+
+function updateStats(){
+  document.getElementById('s-total').textContent=routes.length;
+  document.getElementById('s-pend').textContent=routes.filter(r=>!r.entregue).length;
+  document.getElementById('s-done').textContent=routes.filter(r=>r.entregue).length;
+}
+
+document.getElementById('opt-btn').addEventListener('click',()=>{
+  if(routes.length<3){alert('Adicione pelo menos 3 paradas!');return;}
+  const s=routes[0],e=routes[routes.length-1],m=routes.slice(1,-1);
+  const rem=[...m];const sorted=[];let cur=s;
+  while(rem.length){let best=null,bestD=Infinity;rem.forEach(r=>{const d=Math.hypot(r.lat-cur.lat,r.lng-cur.lng);if(d<bestD){bestD=d;best=r;}});sorted.push(best);rem.splice(rem.indexOf(best),1);cur=best;}
+  routes=[s,...sorted,e];save();renderList();updateStats();
+  setStatus('✦ Rota otimizada!','ok');setTimeout(()=>setStatus(''),3000);
+});
+
+document.getElementById('nav-btn').addEventListener('click',()=>{
+  const pend=routes.filter(r=>!r.entregue);
+  if(!pend.length){alert('Nenhuma entrega pendente!');return;}
+  const o=`${pend[0].lat},${pend[0].lng}`;
+  const d=pend.length>1?`${pend[pend.length-1].lat},${pend[pend.length-1].lng}`:o;
+  const wp=pend.slice(1,-1).map(r=>`${r.lat},${r.lng}`).join('|');
+  window.open(`https://www.google.com/maps/dir/?api=1&origin=${o}&destination=${d}${wp?'&waypoints='+encodeURIComponent(wp):''}&travelmode=driving`,'_blank');
+});
+
+document.getElementById('gmaps-btn').addEventListener('click',()=>{
+  const pend=routes.filter(r=>!r.entregue);
+  if(!pend.length){alert('Nenhuma entrega pendente!');return;}
+  const o=encodeURIComponent(pend[0].addr);
+  const d=pend.length>1?encodeURIComponent(pend[pend.length-1].addr):o;
+  const wp=pend.length>2?encodeURIComponent(pend.slice(1,-1).map(r=>r.addr).join('|')):'';
+  window.open(`https://www.google.com/maps/dir/?api=1&origin=${o}&destination=${d}${wp?'&waypoints='+wp:''}&travelmode=driving`,'_blank');
+});
+
+document.getElementById('waze-btn').addEventListener('click',()=>{
+  const pend=routes.filter(r=>!r.entregue);
+  if(!pend.length){alert('Nenhuma entrega pendente!');return;}
+  window.open(`https://waze.com/ul?ll=${pend[0].lat}%2C${pend[0].lng}&navigate=yes`,'_blank');
+});
+
+// MICROFONE
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(SR){
+  recognition=new SR();
+  recognition.lang='pt-BR';recognition.interimResults=false;recognition.continuous=false;
+  recognition.onstart=()=>{isListening=true;micBtn.classList.add('active');micBtn.textContent='⏹️';setStatus('🎙️ Ouvindo... fale o endereço com número','on');};
+  recognition.onend=()=>{isListening=false;micBtn.classList.remove('active');micBtn.textContent='🎙️';if(micSt.className==='on')setStatus('');};
+  recognition.onresult=e=>{
+    const t=e.results[0][0].transcript;
+    // Normaliza: "erva mate 499" -> "Erva Mate, 499"
+    // Tenta inserir vírgula antes do número se não tiver
+    const normalizado=t.replace(/(\D)\s+(\d+)/g,'$1, $2');
+    input.value=normalizado;
+    selectedLat=null;selectedLng=null;selectedAddr=null;
+    setStatus('🔍 Buscando "'+normalizado+'"...','');
+    buscar(normalizado, data=>{
+      if(data&&data.length){
+        mostrar(data);
+        setStatus('✓ Toque no endereço correto abaixo','ok');
+      } else {
+        setStatus('Não encontrado. Tente digitar a cidade também.','err');
+      }
+    });
+  };
+  recognition.onerror=e=>{
+    const msgs={'not-allowed':'⚠️ Permita o microfone nas configurações do Chrome','no-speech':'Nenhuma fala. Tente de novo.','network':'Erro de rede.'};
+    setStatus(msgs[e.error]||'Erro no microfone. Tente de novo.','err');
+    isListening=false;micBtn.classList.remove('active');micBtn.textContent='🎙️';
+  };
+  micBtn.addEventListener('click',()=>{
+    if(isListening)recognition.stop();
+    else try{recognition.start();}catch(ex){setStatus('Toque de novo para tentar','err');}
+  });
+}else{
+  micBtn.disabled=true;micBtn.style.opacity='0.4';
+  setStatus('Use o Google Chrome para usar o microfone');
+}
+
+load();renderList();updateStats();
+</script>
+</body>
+</html>
