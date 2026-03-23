@@ -7,6 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-title" content="Entregas BH"/>
 <title>Entregas BH</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f8;color:#1a1a1a;min-height:100vh;}
@@ -23,6 +28,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .field input{width:100%;border:1.5px solid #e5e7eb;border-radius:10px;padding:10px 12px;font-size:14px;color:#1a1a1a;background:#fff;outline:none;font-family:inherit;transition:border-color 0.2s;}
 .field input:focus{border-color:#1D9E75;}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+/* Campos de endereço em 2 linhas */
+.row-rua{display:flex;gap:8px;}
+.row-rua .f-rua{flex:1;}
+.row-rua .f-num{width:90px;flex-shrink:0;}
+
 .mic-row{display:flex;gap:8px;}
 .addr-wrap{flex:1;position:relative;}
 .mic-btn{width:42px;height:42px;border-radius:50%;background:#1D9E75;border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -33,15 +43,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #mic-status.ok{color:#1D9E75;font-weight:600;}
 #mic-status.err{color:#c0392b;}
 
-/* Sugestões */
-.pac-box{background:#fff;border:1.5px solid #1D9E75;border-radius:10px;margin-top:3px;overflow-y:auto;display:none;position:absolute;left:0;right:0;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,0.15);max-height:260px;}
+.pac-box{background:#fff;border:1.5px solid #1D9E75;border-radius:10px;margin-top:3px;overflow-y:auto;display:none;position:absolute;left:0;right:0;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,0.15);max-height:240px;}
 .pac-item{padding:10px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;gap:8px;align-items:flex-start;}
 .pac-item:last-child{border-bottom:none;}
 .pac-item:active{background:#E1F5EE;}
 .pac-main{font-size:13px;font-weight:600;color:#1a1a1a;}
 .pac-sec{font-size:11px;color:#888;margin-top:1px;}
-/* Destaque quando tem número */
-.pac-item.tem-num .pac-main{color:#0F6E56;}
 
 .btn-add{width:100%;background:#1D9E75;color:#fff;border:none;border-radius:12px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px;font-family:inherit;}
 .btn-add:active{background:#0F6E56;}
@@ -79,6 +86,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 .empty{text-align:center;padding:36px 20px;color:#bbb;}
 .empty .icon{font-size:44px;margin-bottom:10px;}
+@keyframes itemIn{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);}}
+.item.novo{animation:itemIn 0.25s ease;}
 
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;display:flex;align-items:flex-end;justify-content:center;}
 .modal-bg.hidden{display:none;}
@@ -101,6 +110,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .m-btn.ok{background:#1D9E75;color:#fff;}
 .m-btn.cancel{background:#f3f4f6;color:#444;}
 .pb{padding-bottom:28px;}
+.hint{font-size:10px;color:#aaa;margin-top:3px;text-align:center;}
 </style>
 </head>
 <body>
@@ -118,6 +128,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <div class="card">
   <div class="card-title">Adicionar Entrega</div>
+
+  <!-- Pedido + Complemento -->
   <div class="row2">
     <div class="field">
       <label>Nº do Pedido</label>
@@ -128,16 +140,54 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <input type="text" id="f-compl" placeholder="Ex: Bl1 201"/>
     </div>
   </div>
+
+  <!-- NOVOS CAMPOS: Plataforma + Tipo + KM -->
+  <div class="row2" style="margin-bottom:10px;">
+    <div class="field">
+      <label>Plataforma</label>
+      <select id="f-plat" style="border:1.5px solid #e5e7eb;border-radius:10px;padding:10px 12px;font-size:14px;color:#1a1a1a;background:#fff;outline:none;font-family:inherit;width:100%;">
+        <option value="">Selecione...</option>
+        <option value="iFood">🛵 iFood</option>
+        <option value="99">🟡 99Food</option>
+        <option value="Particular">🏠 Particular</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Tipo do Local</label>
+      <select id="f-tipo" style="border:1.5px solid #e5e7eb;border-radius:10px;padding:10px 12px;font-size:14px;color:#1a1a1a;background:#fff;outline:none;font-family:inherit;width:100%;">
+        <option value="">Selecione...</option>
+        <option value="Casa">🏠 Casa</option>
+        <option value="Apartamento">🏢 Apartamento</option>
+        <option value="Loja">🏪 Loja/Comércio</option>
+        <option value="Condomínio">🏘️ Condomínio</option>
+      </select>
+    </div>
+  </div>
   <div class="field">
-    <label>Endereço com número</label>
+    <label>KM da Corrida</label>
+    <input type="number" id="f-km" placeholder="Ex: 2.7  (usado no app do motoboy)" step="0.1" inputmode="decimal"
+      style="border:1.5px solid #1D9E75;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:600;color:#1a1a1a;background:#fff;outline:none;font-family:inherit;width:100%;"/>
+    <div id="fb-msg" style="font-size:11px;color:#1D9E75;font-weight:600;margin-top:3px;min-height:16px;"></div>
+  </div>
+
+  <!-- Nome da Rua + Número separados -->
+  <div class="field">
+    <label>Nome da Rua</label>
     <div class="mic-row">
       <div class="addr-wrap">
-        <input type="text" id="addr-input" placeholder='Ex: "Erva Mate 499 Piratininga"' autocomplete="off"/>
+        <input type="text" id="addr-input" placeholder='Ex: "Erva Mate, Piratininga"' autocomplete="off"/>
         <div class="pac-box" id="pac-box"></div>
       </div>
       <button class="mic-btn" id="mic-btn">🎙️</button>
     </div>
+    <div class="hint">Fale ou digite só o nome da rua e bairro</div>
   </div>
+
+  <div class="field">
+    <label>Número da Casa / Ap</label>
+    <input type="text" id="f-numero" placeholder="Ex: 499" inputmode="numeric" style="border-color:#1D9E75;font-size:16px;font-weight:600;"/>
+  </div>
+
   <div id="mic-status"></div>
   <button class="btn-add" id="add-btn">+ Adicionar Entrega</button>
 </div>
@@ -180,8 +230,103 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <script>
+// ── FIREBASE (mesmo projeto Bolo de Mi) ─────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyD9JGS6HMTWuj17fne5hOAZ2TOh9o8tyhw",
+  authDomain: "bolo-de-mi.firebaseapp.com",
+  projectId: "bolo-de-mi",
+  storageBucket: "bolo-de-mi.firebasestorage.app",
+  messagingSenderId: "1060789628321",
+  appId: "1:1060789628321:web:fe5a8beb4a305de9772fe0"
+};
+try{ firebase.initializeApp(firebaseConfig); } catch(e){}
+const db = firebase.firestore();
+const dataHoje = new Date().toLocaleDateString('en-CA');
+
+// Tabela de preços igual ao motoboy
+const tabelaPrecos = [
+  {ate:3,valor:3},{ate:7,valor:5},{ate:9,valor:7},
+  {ate:14,valor:11},{ate:18,valor:18},{ate:999,valor:20}
+];
+
+// Bairros fixos (mesmos do motoboy)
+const bairrosFixos = [
+  {nome:'Santa Mônica',km:0.9},{nome:'Jardim Leblon',km:2.5},
+  {nome:'Pampulha',km:5.1},{nome:'Céu Azul',km:2.9},
+  {nome:'São João Batista',km:2.8},{nome:'Itapoã',km:2.8},
+  {nome:'Jardim Atlântico',km:2.4},{nome:'Lagoa',km:4.1},
+  {nome:'Venda Nova',km:3.3},{nome:'Santa Amélia',km:0.8},
+  {nome:'Planalto',km:4.0},{nome:'Piratininga',km:2.7},
+  {nome:'Justinópolis',km:5.2},{nome:'Ouro Preto',km:7.5},
+  {nome:'Santa Branca',km:2.5},{nome:'Europa',km:4.5},
+  {nome:'Trevo',km:3.8},{nome:'Braunas',km:5.0},
+  {nome:'Contagem Xangrilá',km:6.4},{nome:'Céu Anil',km:4.0},
+  {nome:'Leticia',km:2.6},{nome:'Copacabana',km:1.2},
+  {nome:'Candelaria',km:3.2},{nome:'Rio Branco',km:2.3},
+  {nome:'Minas Caixa',km:3.8},
+];
+
+function normalizar(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,'');}
+
+// Detecta plataforma pelo tamanho do código
+function detectarPlat(cod){
+  const n=cod.replace(/\D/g,'');
+  if(n.length===4)return'iFood';
+  if(n.length===6)return'99';
+  if(n.length>0)return'Particular';
+  return'';
+}
+
+// Auto-preenche plataforma quando digita o pedido
+document.getElementById('f-pedido').addEventListener('input', function(){
+  const plat = detectarPlat(this.value);
+  if(plat) document.getElementById('f-plat').value = plat;
+});
+
+// Salva pedido no Firebase do motoboy
+async function salvarNoMotoboy(pedido, plat, tipo, bairro, km, compl, numero, addr){
+  if(!km || km<=0) return; // sem km não envia
+  let valor = 0;
+  for(const f of tabelaPrecos){ if(km<=f.ate){ valor=f.valor; break; } }
+  const endFull = addr + (compl?' — '+compl:'') + (tipo?' ['+tipo+']':'');
+  try{
+    await db.collection('pedidos').add({
+      codigo: pedido,
+      plataforma: plat || 'Particular',
+      endereco: endFull,
+      bairro: bairro,
+      km: km,
+      valor: valor,
+      motoboyId: 'LOJA',
+      motoboyNome: 'Loja',
+      motoboyTel: '',
+      data: dataHoje,
+      timestamp: new Date().toISOString(),
+      entregue: false,
+      tipo: tipo
+    });
+    // Salva bairro novo se necessário (para aparecer no autocomplete do motoboy)
+    const norm = normalizar(bairro);
+    const jaExiste = bairrosFixos.some(b=>normalizar(b.nome)===norm);
+    if(!jaExiste && km>0){
+      await db.collection('bairros').doc(norm.replace(/\s+/g,'_')).set(
+        {nome:bairro, km:km, criadoEm:new Date().toISOString()}, {merge:true}
+      );
+    }
+    const msg = document.getElementById('fb-msg');
+    msg.textContent = '✅ Pedido #'+pedido+' enviado para o app do motoboy!';
+    msg.style.color = '#1D9E75';
+    setTimeout(()=>{ msg.textContent=''; }, 4000);
+  }catch(e){
+    const msg = document.getElementById('fb-msg');
+    msg.textContent = '⚠️ Sem internet — pedido salvo só localmente';
+    msg.style.color = '#BA7517';
+    setTimeout(()=>{ msg.textContent=''; }, 4000);
+  }
+}
+
 let routes=[], recognition=null, isListening=false, openId=null;
-let selLat=null, selLng=null, selAddr=null, searchTimer=null;
+let selLat=null, selLng=null, selRua=null, searchTimer=null;
 let myLat=null, myLng=null, dragSrc=null;
 
 const input  = document.getElementById('addr-input');
@@ -191,8 +336,8 @@ const micSt  = document.getElementById('mic-status');
 const listEl = document.getElementById('list');
 const modal  = document.getElementById('modal');
 
-function save(){try{localStorage.setItem('ebh2',JSON.stringify(routes));}catch(e){}}
-function load(){try{const d=localStorage.getItem('ebh2');if(d)routes=JSON.parse(d);}catch(e){}}
+function save(){try{localStorage.setItem('ebh3',JSON.stringify(routes));}catch(e){}}
+function load(){try{const d=localStorage.getItem('ebh3');if(d)routes=JSON.parse(d);}catch(e){}}
 function setSt(msg,cls){micSt.textContent=msg;micSt.className=cls||'';}
 
 // ── GPS ──────────────────────────────────────────────────
@@ -201,47 +346,45 @@ function pegaGPS(){
   lt.textContent='Buscando GPS...';
   if(!navigator.geolocation){lt.textContent='GPS indisponível';return;}
   navigator.geolocation.getCurrentPosition(pos=>{
-    myLat=pos.coords.latitude;
-    myLng=pos.coords.longitude;
+    myLat=pos.coords.latitude; myLng=pos.coords.longitude;
     fetch(`https://nominatim.openstreetmap.org/reverse?lat=${myLat}&lon=${myLng}&format=json&accept-language=pt-BR`,
       {headers:{'User-Agent':'AppEntregas/1.0'}})
       .then(r=>r.json()).then(d=>{
         const rua=d.address.road||'';
-        const num=d.address.house_number?', '+d.address.house_number:'';
         const bairro=d.address.suburb||d.address.neighbourhood||'';
-        lt.textContent='✓ '+rua+num+(bairro?' - '+bairro:'');
+        lt.textContent='✓ '+rua+(bairro?' - '+bairro:'');
       }).catch(()=>{lt.textContent=`GPS OK: ${myLat.toFixed(5)}, ${myLng.toFixed(5)}`;});
-  },err=>{
-    lt.textContent='⚠️ Permita o GPS no Chrome';
+  },()=>{
+    document.getElementById('loc-txt').textContent='⚠️ Permita o GPS no Chrome';
   },{enableHighAccuracy:true,timeout:12000});
 }
 pegaGPS();
 document.getElementById('loc-btn').addEventListener('click',pegaGPS);
 
-// ── BUSCA BH com número ──────────────────────────────────
-function buscar(q, cb){
-  // Busca 1: com número (mais específica)
-  const qNum = q + ', Belo Horizonte, MG';
-  const url = 'https://nominatim.openstreetmap.org/search?' +
-    'q=' + encodeURIComponent(qNum) +
-    '&format=json&addressdetails=1&limit=10&countrycodes=br&accept-language=pt-BR';
-
-  fetch(url,{headers:{'User-Agent':'AppEntregas/1.0'}})
+// ── BUSCA SOMENTE A RUA (sem número) ────────────────────
+// Assim o mapa acha a rua certa e NÓS colocamos o número correto
+function buscarRua(q, cb){
+  const query = q + ', Belo Horizonte, MG, Brasil';
+  fetch('https://nominatim.openstreetmap.org/search?' +
+    'q=' + encodeURIComponent(query) +
+    '&format=json&addressdetails=1&limit=7&countrycodes=br&accept-language=pt-BR',
+    {headers:{'User-Agent':'AppEntregas/1.0'}})
     .then(r=>r.json())
     .then(data=>{
-      if(!data) data=[];
-      // Filtra só MG
-      const mg=data.filter(p=>{
+      if(!data)return cb([]);
+      // Filtra MG e ordena: ruas primeiro (type=residential/street)
+      const mg = data.filter(p=>{
         const st=(p.address.state||'').toLowerCase();
         return st.includes('minas');
       });
-      // Ordena: com número primeiro
-      mg.sort((a,b)=>{
-        const an=a.address.house_number?1:0;
-        const bn=b.address.house_number?1:0;
-        return bn-an;
+      // Deduplicar ruas iguais (pega só 1 por nome de rua)
+      const vistas = new Set();
+      const unicas = (mg.length?mg:data).filter(p=>{
+        const rua = p.address.road||p.display_name.split(',')[0];
+        if(vistas.has(rua))return false;
+        vistas.add(rua);return true;
       });
-      cb(mg.length?mg:data.slice(0,6));
+      cb(unicas.slice(0,6));
     }).catch(()=>cb([]));
 }
 
@@ -249,19 +392,15 @@ function mostrar(data){
   if(!data||!data.length){pacBox.style.display='none';return;}
   pacBox.innerHTML=data.map(p=>{
     const rua    = p.address.road||p.address.pedestrian||p.display_name.split(',')[0]||'';
-    const num    = p.address.house_number||'';
     const bairro = p.address.suburb||p.address.neighbourhood||p.address.quarter||'';
     const cidade = p.address.city||p.address.town||'Belo Horizonte';
-    const main   = num ? `${rua}, ${num}` : rua;
-    const sec    = [bairro, cidade].filter(Boolean).join(', ');
-    const full   = main + (sec?', '+sec:'');
-    const temNum = !!num;
-    return `<div class="pac-item${temNum?' tem-num':''}"
-      data-lat="${p.lat}" data-lng="${p.lon}" data-name="${full}">
-      <span>${temNum?'✅':'📍'}</span>
+    const sec    = [bairro,cidade].filter(Boolean).join(', ');
+    return `<div class="pac-item"
+      data-lat="${p.lat}" data-lng="${p.lon}" data-rua="${rua}">
+      <span>📍</span>
       <div>
-        <div class="pac-main">${main}</div>
-        <div class="pac-sec">${sec}${temNum?' ✓ Número encontrado':''}</div>
+        <div class="pac-main">${rua}</div>
+        <div class="pac-sec">${sec}</div>
       </div>
     </div>`;
   }).join('');
@@ -269,21 +408,23 @@ function mostrar(data){
 }
 
 input.addEventListener('input',()=>{
-  selLat=null;selLng=null;selAddr=null;
+  selLat=null;selLng=null;selRua=null;
   clearTimeout(searchTimer);
   const q=input.value.trim();
   if(q.length<3){pacBox.style.display='none';return;}
-  searchTimer=setTimeout(()=>buscar(q,mostrar),400);
+  searchTimer=setTimeout(()=>buscarRua(q,mostrar),400);
 });
 
 pacBox.addEventListener('click',e=>{
   const it=e.target.closest('.pac-item');if(!it)return;
   selLat=parseFloat(it.dataset.lat);
   selLng=parseFloat(it.dataset.lng);
-  selAddr=it.dataset.name;
-  input.value=selAddr;
+  selRua=it.dataset.rua;
+  input.value=selRua;
   pacBox.style.display='none';
-  setSt('✓ Endereço selecionado! Clique em Adicionar.','ok');
+  // Foca no campo de número
+  document.getElementById('f-numero').focus();
+  setSt('✓ Rua selecionada! Agora informe o número.','ok');
 });
 
 document.addEventListener('click',e=>{
@@ -291,51 +432,72 @@ document.addEventListener('click',e=>{
 });
 
 // ── ADICIONAR ────────────────────────────────────────────
-function addRoute(addr,lat,lng){
-  const pedido=document.getElementById('f-pedido').value.trim()||'—';
-  const compl =document.getElementById('f-compl').value.trim()||'';
-  routes.push({addr,lat,lng,pedido,compl,id:Date.now()+Math.random(),entregue:false});
+function addRoute(rua, numero, lat, lng){
+  const pedido = document.getElementById('f-pedido').value.trim()||'—';
+  const compl  = document.getElementById('f-compl').value.trim()||'';
+  const plat   = document.getElementById('f-plat').value||'';
+  const tipo   = document.getElementById('f-tipo').value||'';
+  const km     = parseFloat(document.getElementById('f-km').value)||0;
+  // Extrai bairro da rua selecionada (última parte do endereço)
+  const bairro = selRua ? (document.querySelector('#pac-box .pac-item.selecionado')?.dataset?.bairro || rua) : rua;
+
+  // Monta endereço completo COM o número digitado pelo usuário
+  const addr   = numero ? `${rua}, ${numero}, Belo Horizonte` : `${rua}, Belo Horizonte`;
+
+  routes.push({addr, addrMaps: addr, lat, lng, pedido, compl, numero, plat, tipo, km, id:Date.now()+Math.random(), entregue:false, novo:true});
+
+  // Envia para o Firebase do motoboy (se tiver km preenchido)
+  if(km>0) salvarNoMotoboy(pedido, plat, tipo, rua, km, compl, numero, addr);
+
   document.getElementById('f-pedido').value='';
   document.getElementById('f-compl').value='';
-  input.value='';selLat=null;selLng=null;selAddr=null;
-  pacBox.style.display='none';setSt('✓ Entrega adicionada!','ok');
+  document.getElementById('f-numero').value='';
+  document.getElementById('f-plat').value='';
+  document.getElementById('f-tipo').value='';
+  document.getElementById('f-km').value='';
+  input.value=''; selLat=null; selLng=null; selRua=null;
+  pacBox.style.display='none';
+  setSt('✓ Entrega adicionada!','ok');
   setTimeout(()=>setSt(''),2000);
-  save();render();stats();
+  save(); render(); stats();
+  setTimeout(()=>{routes.forEach(r=>r.novo=false);},400);
   setTimeout(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}),150);
 }
 
 document.getElementById('add-btn').addEventListener('click',()=>{
-  const val=input.value.trim();
-  if(!val){alert('Informe o endereço!');return;}
+  const ruaVal   = input.value.trim();
+  const numeroVal= document.getElementById('f-numero').value.trim();
 
-  // Se já selecionou da lista
-  if(selLat&&selLng){
-    addRoute(selAddr||val,selLat,selLng);
+  if(!ruaVal){alert('Informe o nome da rua!');return;}
+  if(!numeroVal){
+    if(!confirm('Continuar sem número?'))return;
+  }
+
+  if(selLat&&selLng&&selRua){
+    addRoute(selRua, numeroVal, selLat, selLng);
     return;
   }
 
-  // Se não selecionou, busca e adiciona o primeiro resultado automaticamente
-  setSt('🔍 Buscando endereço em BH...','');
-  buscar(val,data=>{
+  // Busca a rua se não selecionou da lista
+  setSt('🔍 Buscando rua em BH...','');
+  buscarRua(ruaVal, data=>{
     if(data&&data.length){
-      // Pega o primeiro com número, ou o primeiro de qualquer jeito
-      const comNum=data.find(p=>p.address.house_number);
-      const p=comNum||data[0];
-      const rua    = p.address.road||p.address.pedestrian||val;
-      const num    = p.address.house_number||'';
-      const bairro = p.address.suburb||p.address.neighbourhood||'';
-      const cidade = p.address.city||p.address.town||'Belo Horizonte';
-      const main   = num ? `${rua}, ${num}` : rua;
-      const sec    = [bairro,cidade].filter(Boolean).join(', ');
-      const full   = main+(sec?', '+sec:'');
-      addRoute(full, parseFloat(p.lat), parseFloat(p.lon));
+      const p=data[0];
+      const rua=p.address.road||p.address.pedestrian||ruaVal;
+      addRoute(rua, numeroVal, parseFloat(p.lat), parseFloat(p.lon));
     }else{
-      setSt('Endereço não encontrado. Tente: "Rua Nome, 123, Bairro"','err');
+      // Usa o texto digitado mesmo
+      addRoute(ruaVal, numeroVal, myLat||-19.92, myLng||-43.94);
     }
   });
 });
 
-input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();document.getElementById('add-btn').click();}});
+input.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();document.getElementById('f-numero').focus();}
+});
+document.getElementById('f-numero').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();document.getElementById('add-btn').click();}
+});
 
 // ── RENDER ───────────────────────────────────────────────
 function render(){
@@ -349,12 +511,16 @@ function render(){
   empty.style.display='none';hdr.style.display='block';
   listEl.innerHTML=routes.map((r,i)=>{
     const lbl=r.entregue?'✓':(i+1);
-    return `<div class="item${r.entregue?' entregue':''}" draggable="true" data-id="${r.id}">
+    // Mostra rua + número na lista
+    const displayAddr = r.numero
+      ? r.addr.split(',').slice(0,2).join(',')
+      : r.addr.split(',')[0];
+    return `<div class="item${r.entregue?' entregue':''}${r.novo?' novo':''}" draggable="true" data-id="${r.id}">
       <div class="item-head">
         <span class="drag-h">☰</span>
         <div class="num${r.entregue?' done':''}">${lbl}</div>
         <div class="item-info">
-          <div class="item-addr">${r.addr.split(',').slice(0,3).join(',')}</div>
+          <div class="item-addr">${displayAddr}</div>
           <div class="item-sub">Pedido <strong>#${r.pedido}</strong>${r.compl?' · '+r.compl:''}</div>
         </div>
         <div class="item-right">
@@ -364,7 +530,11 @@ function render(){
       </div>
       <div class="tags">
         <span class="tag p">📦 #${r.pedido}</span>
+        ${r.tipo?`<span class="tag c">${r.tipo}</span>`:''}
+        ${r.numero?`<span class="tag p">Nº ${r.numero}</span>`:''}
         ${r.compl?`<span class="tag c">${r.compl}</span>`:''}
+        ${r.plat?`<span class="tag p">${r.plat}</span>`:''}
+        ${r.km?`<span class="tag p">${r.km}km</span>`:''}
         ${r.entregue?'<span class="tag e">✓ Entregue</span>':''}
       </div>
     </div>`;
@@ -375,11 +545,7 @@ function render(){
 
 listEl.addEventListener('click',e=>{
   const del=e.target.closest('[data-del]');
-  if(del){
-    if(!confirm('Remover esta entrega?'))return;
-    routes=routes.filter(r=>r.id!==parseFloat(del.dataset.del));
-    save();render();stats();return;
-  }
+  if(del){if(!confirm('Remover?'))return;routes=routes.filter(r=>r.id!==parseFloat(del.dataset.del));save();render();stats();return;}
   const op=e.target.closest('[data-open]');
   if(op)abreModal(parseFloat(op.dataset.open));
 });
@@ -401,7 +567,6 @@ function dragSetup(){
       const tmp=routes[si];routes[si]=routes[di];routes[di]=tmp;
       save();render();stats();
     });
-    // Touch drag
     it.addEventListener('touchstart',e=>{dragSrc=it;},{passive:true});
     it.addEventListener('touchmove',e=>{
       e.preventDefault();
@@ -432,7 +597,11 @@ function abreModal(id){
   document.getElementById('m-num').textContent='#'+r.pedido;
   document.getElementById('m-adr').textContent=r.addr;
   document.getElementById('m-body').innerHTML=`
-    ${r.compl?`<div class="m-row"><span class="m-k">Apto/Bloco</span><span class="m-v">${r.compl}</span></div>`:''}
+    ${r.tipo?`<div class="m-row"><span class="m-k">Tipo</span><span class="m-v">${r.tipo}</span></div>`:''}
+    ${r.numero?`<div class="m-row"><span class="m-k">Número</span><span class="m-v">🏠 ${r.numero}</span></div>`:''}
+    ${r.compl?`<div class="m-row"><span class="m-k">Apto/Bloco</span><span class="m-v" style="font-size:18px;font-weight:800;">${r.compl}</span></div>`:''}
+    ${r.plat?`<div class="m-row"><span class="m-k">Plataforma</span><span class="m-v">${r.plat}</span></div>`:''}
+    ${r.km?`<div class="m-row"><span class="m-k">KM</span><span class="m-v">${r.km} km</span></div>`:''}
     <div class="m-row"><span class="m-k">Status</span><span class="m-v ${r.entregue?'ok':'pend'}">${r.entregue?'✓ Entregue':'⏳ Pendente'}</span></div>
     <div class="m-row"><span class="m-k">Ordem</span><span class="m-v">${routes.indexOf(r)+1}ª parada</span></div>`;
   modal.classList.remove('hidden');
@@ -464,34 +633,29 @@ document.getElementById('opt-btn').addEventListener('click',()=>{
     sorted.push(best);rem.splice(rem.indexOf(best),1);cur=best;
   }
   routes=sorted;save();render();stats();
-  setSt('✦ Ordem otimizada a partir da sua localização!','ok');
-  setTimeout(()=>setSt(''),3000);
+  setSt('✦ Ordem otimizada!','ok');setTimeout(()=>setSt(''),3000);
 });
 
-// ── NAVEGAR GOOGLE MAPS ───────────────────────────────────
-// Usa "Seu local" como origem via geo: URI trick
-// O Maps aceita "my+location" como origem quando vem do celular
+// ── NAVEGAR — envia endereço por NOME (não coordenada) ───
+// Assim o Google Maps usa o endereço exato que você digitou
 document.getElementById('nav-btn').addEventListener('click',()=>{
   const pend=routes.filter(r=>!r.entregue);
   if(!pend.length){alert('Nenhuma entrega pendente!');return;}
-  if(!myLat){
-    alert('Aguarde o GPS ser localizado!\nVeja a barra verde no topo.');
-    pegaGPS();return;
-  }
+  if(!myLat){alert('Aguarde o GPS!\nVeja a barra verde no topo.');pegaGPS();return;}
 
-  // Monta URL com todas as paradas
-  // Origem = coordenadas GPS exatas
-  const origem  = myLat+','+myLng;
-  const destino = pend[pend.length-1].lat+','+pend[pend.length-1].lng;
+  // Origem = coordenadas GPS do celular
+  const origem = myLat+','+myLng;
 
-  // Waypoints = todas exceto a última
-  const wpsArr  = pend.slice(0,-1).map(r=>r.lat+','+r.lng);
-  const wpStr   = wpsArr.join('|');
+  // Destino = último endereço por nome (Maps vai resolver o número correto)
+  const destino = encodeURIComponent(pend[pend.length-1].addr);
+
+  // Waypoints = endereços do meio por nome
+  const wps = pend.slice(0,-1).map(r=>encodeURIComponent(r.addr)).join('|');
 
   const url = 'https://www.google.com/maps/dir/?api=1'
     + '&origin=' + origem
     + '&destination=' + destino
-    + (wpStr ? '&waypoints=' + encodeURIComponent(wpStr) : '')
+    + (wps ? '&waypoints=' + encodeURIComponent(pend.slice(0,-1).map(r=>r.addr).join('|')) : '')
     + '&travelmode=driving';
 
   window.open(url,'_blank');
@@ -503,30 +667,35 @@ document.getElementById('waze-btn').addEventListener('click',()=>{
   window.open(`https://waze.com/ul?ll=${pend[0].lat}%2C${pend[0].lng}&navigate=yes`,'_blank');
 });
 
-// ── MICROFONE ────────────────────────────────────────────
+// ── MICROFONE ─────────────────────────────────────────────
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(SR){
   recognition=new SR();
   recognition.lang='pt-BR';recognition.interimResults=false;recognition.continuous=false;
-  recognition.onstart=()=>{isListening=true;micBtn.classList.add('active');micBtn.textContent='⏹️';setSt('🎙️ Ouvindo...','on');};
+  recognition.onstart=()=>{isListening=true;micBtn.classList.add('active');micBtn.textContent='⏹️';setSt('🎙️ Fale o nome da rua e bairro...','on');};
   recognition.onend=()=>{isListening=false;micBtn.classList.remove('active');micBtn.textContent='🎙️';if(micSt.className==='on')setSt('');};
   recognition.onresult=e=>{
-    const t=e.results[0][0].transcript;
-    // Normaliza número: "erva mate 499" → "erva mate, 499"
-    const norm=t.replace(/([a-zA-ZÀ-ú])\s+(\d+)/g,'$1, $2');
-    input.value=norm;selLat=null;selLng=null;selAddr=null;
-    setSt('🔍 Buscando "'+norm+'" em BH...','');
-    buscar(norm,data=>{
+    let t=e.results[0][0].transcript;
+    // Remove números da fala (o número vai no campo separado)
+    // Ex: "Erva Mate 499 Piratininga" → "Erva Mate Piratininga" + coloca 499 no campo número
+    const numMatch=t.match(/\b(\d+)\b/);
+    if(numMatch){
+      document.getElementById('f-numero').value=numMatch[1];
+      t=t.replace(/\b\d+\b/g,'').replace(/\s+/g,' ').trim();
+    }
+    input.value=t; selLat=null; selLng=null; selRua=null;
+    setSt('🔍 Buscando "'+t+'" em BH...','');
+    buscarRua(t, data=>{
       if(data&&data.length){
         mostrar(data);
-        setSt('✓ Toque no endereço correto abaixo','ok');
+        setSt('✓ Toque na rua correta abaixo','ok');
       }else{
         setSt('Não encontrado. Tente falar o bairro também.','err');
       }
     });
   };
   recognition.onerror=e=>{
-    const m={'not-allowed':'⚠️ Permita o microfone nas configurações','no-speech':'Nenhuma fala. Tente de novo.','network':'Erro de rede.'};
+    const m={'not-allowed':'⚠️ Permita o microfone no Chrome','no-speech':'Nenhuma fala.','network':'Erro de rede.'};
     setSt(m[e.error]||'Erro no microfone.','err');
     isListening=false;micBtn.classList.remove('active');micBtn.textContent='🎙️';
   };
@@ -540,6 +709,19 @@ if(SR){
 }
 
 load();render();stats();
+
+// Força sempre a versão mais recente (evita cache do GitHub)
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(regs=>{
+    regs.forEach(r=>r.unregister());
+  });
+}
+// Se a página foi carregada do cache, recarrega silenciosamente em background
+// e avisa o usuário apenas se houver versão nova
+if(window.performance && performance.navigation.type === 2){
+  // Veio do cache de navegação — força reload
+  window.location.reload(true);
+}
 </script>
 </body>
 </html>
